@@ -1,76 +1,27 @@
-# <img src="0-repo-asset/PantauDesa.jpeg" width="100" height="100"> PantauDesa
-<img src="0-repo-asset/TarunaDEV-Icon.jpeg" width="100" height="100"> Tim TarunaDEV
+# DesaQuest Simple + Supabase — latihan live coding
 
-Platform pemantauan pembangunan desa berbasis gamifikasi. Petugas membuat quest
-pembangunan, warga memantau langsung di lapangan lewat foto + validasi GPS, dan
-mengumpulkan XP untuk ditukar reward nyata (mis. minyak goreng, beras, pulsa).
+React + Vite + Tailwind + Supabase (database). Login: cek tabel `users`, lalu sesi disimpan di localStorage.
 
-Dibangun dengan **React 18 + Vite + Tailwind CSS**.
+## Setup
+1. Buat project di supabase.com → **SQL Editor** → tempel & jalankan `schema.sql`
+2. `cp .env.example .env` lalu isi `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY` (Project Settings → API)
+3. `npm install && npm run dev`
 
-## Menjalankan proyek
+Akun demo: `admin/admin123` · `rudi/petugas123` · `budi/warga123`
 
-```bash
-npm install
-npm run dev
+## Alur data
+- `App.jsx` → `reload()` mengambil 4 tabel sekaligus → state `db` → dikirim ke halaman sesuai role
+- Setiap aksi: `await run(supabase.from("tabel").insert/update/delete(...))` lalu `reload()`
+- `run()` (lib/supabase.js) = bungkus query: error → alert, sukses → kembalikan data
+
+## Pola kunci yang perlu dihafal
+```js
+await run(supabase.from("quests").insert({ title, lat, lng }));
+await run(supabase.from("users").update({ xp: xp + 100 }).eq("id", id));
+await run(supabase.from("quests").delete().eq("id", id));
+const { data } = await supabase.from("users").select("*").eq("username", u).eq("password", p).maybeSingle();
 ```
 
-Buka `http://localhost:5173` di browser. Untuk build produksi:
-
-```bash
-npm run build
-npm run preview
-```
-
-`npm run build` menghasilkan **satu file** `dist/index.html` yang sudah berisi
-seluruh JS & CSS ter-inline (pakai `vite-plugin-singlefile`) — file ini bisa
-langsung dibuka dengan cara diklik dua kali di browser mana pun (`file://`),
-tanpa perlu server atau koneksi internet ke aset lain. Cocok untuk dibagikan
-sebagai satu file saja layaknya halaman web biasa.
-
-## Akun demo
-
-| Peran   | Username | Kata Sandi  |
-|---------|----------|-------------|
-| Admin   | admin    | admin123    |
-| Petugas | rudi     | petugas123  |
-| Warga   | budi     | warga123    |
-
-Warga baru bisa mendaftar sendiri lewat halaman **Daftar** di layar login.
-Akun Petugas hanya bisa dibuat oleh Admin (menu *Kelola Pengguna*).
-
-## Struktur proyek
-
-```
-src/
-├── App.jsx                 # Komponen utama: routing peran, state, aksi CRUD
-├── main.jsx                # Entry point React
-├── index.css                # Tailwind directives + base style
-├── lib/
-│   ├── data.js              # Seed data awal & fungsi bantu (haversine, level, format tanggal)
-│   └── storage.js           # Lapisan persistensi berbasis localStorage (akan di pindah ke Supabase)
-├── components/
-│   ├── ui.jsx                # Komponen UI primitif (Button, Panel, Tag, dll.)
-│   ├── AuthScreen.jsx         # Halaman Login & Daftar
-│   └── Shell.jsx              # Layout sidebar (desktop) + hamburger (mobile), dipakai oleh Admin, Petugas & Warga
-└── pages/
-    ├── AdminPages.jsx         # Dashboard, Kritik & Saran, Kelola Pengguna, Kelola Reward
-    ├── PetugasPages.jsx       # Dashboard, Buat/Daftar Quest, Verifikasi Laporan
-    └── WargaPages.jsx         # Beranda, Misi, Detail Misi, Reward, Profil — layout kartu/grid responsif
-```
-
-Ketiga peran (Admin, Petugas, Warga) memakai `Shell` yang sama sehingga tampilan
-konsisten dan otomatis responsif: sidebar hijau tetap di desktop, berubah jadi
-menu hamburger yang bisa dibuka-tutup di layar mobile.
-
-## Alur inti
-
-1. **Petugas** membuat quest baru (judul, kategori, XP, koordinat lokasi, radius toleransi meter, periode).
-2. **Warga** membuka misi aktif, mengunggah foto bukti pantauan, lalu mengecek lokasi GPS.
-   Jarak dihitung dengan rumus haversine terhadap koordinat proyek — laporan hanya bisa
-   dikirim jika berada dalam radius yang ditentukan, dan dibatasi 1 laporan/quest/hari.
-3. **Petugas** meninjau laporan masuk (foto + jarak GPS), menyetujui (memberi XP) atau menolak.
-4. **Warga** menukar XP dengan reward yang tersedia; stok otomatis berkurang.
-5. **Admin** memantau statistik keseluruhan, mengelola kritik & saran warga, kelola pengguna,
-   dan kelola katalog reward.
-
-
+## Catatan
+- Password polos & RLS nonaktif = hanya untuk latihan, jangan dipakai produksi.
+- Tambah XP memakai baca-lalu-tulis (bisa race condition); produksi sebaiknya pakai fungsi RPC.
